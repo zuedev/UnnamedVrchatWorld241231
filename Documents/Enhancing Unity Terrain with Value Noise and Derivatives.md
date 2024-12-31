@@ -25,73 +25,125 @@ To integrate Value Noise, we'll write a script that generates height maps using 
 1. **Noise Function Script**:
 
    ```csharp
-   using UnityEngine;
+    using UnityEngine;
 
-   public class TerrainNoise : MonoBehaviour
-   {
-       public int depth = 20; // Controls the vertical scale of the terrain
-       public int width = 256; // Defines the horizontal dimension of the terrain
-       public int height = 256; // Defines the horizontal dimension of the terrain
-       public float scale = 20f; // Adjusts the frequency of the noise, affecting the terrain's detail level
+    /// <summary>
+    /// Generates terrain using Perlin noise.
+    /// </summary>
+    public class TerrainNoise : MonoBehaviour
+    {
+        [SerializeField]
+        private int depth = 20; // Controls the vertical scale of the terrain
 
-       void Start()
-       {
-           Terrain terrain = GetComponent<Terrain>();
-           terrain.terrainData = GenerateTerrain(terrain.terrainData); // Retrieve Terrain component and generate terrain data
-       }
+        [SerializeField]
+        private int width = 256; // Defines the horizontal dimension of the terrain
 
-       TerrainData GenerateTerrain(TerrainData terrainData)
-       {
-           terrainData.heightmapResolution = width + 1; // Set heightmap resolution
-           terrainData.size = new Vector3(width, depth, height); // Set terrain size
-           terrainData.SetHeights(0, 0, GenerateHeights()); // Apply generated heights to the terrain
-           return terrainData;
-       }
+        [SerializeField]
+        private int height = 256; // Defines the horizontal dimension of the terrain
 
-       float[,] GenerateHeights()
-       {
-           float[,] heights = new float[width, height]; // Create a 2D array for height values
-           for (int x = 0; x < width; x++)
-           {
-               for (int y = 0; y < height; y++)
-               {
-                   heights[x, y] = CalculateNoise(x, y); // Calculate height using Perlin noise
-               }
-           }
-           return heights;
-       }
+        [SerializeField]
+        private float scale = 20f; // Adjusts the frequency of the noise, affecting the terrain's detail level
 
-       float CalculateNoise(int x, int y)
-       {
-           float xCoord = (float)x / width * scale; // Scale x coordinate
-           float yCoord = (float)y / height * scale; // Scale y coordinate
-           return Mathf.PerlinNoise(xCoord, yCoord); // Generate Perlin noise value
-       }
-   }
+        private Terrain terrain;
+
+        void Start()
+        {
+            terrain = GetComponent<Terrain>();
+            UpdateTerrain();
+        }
+
+        /// <summary>
+        /// Updates the terrain data.
+        /// </summary>
+        public void UpdateTerrain()
+        {
+            if (terrain != null)
+            {
+                terrain.terrainData = GenerateTerrain(terrain.terrainData);
+            }
+        }
+
+        /// <summary>
+        /// Generates the terrain data.
+        /// </summary>
+        /// <param name="terrainData">The terrain data to be modified.</param>
+        /// <returns>The modified terrain data.</returns>
+        private TerrainData GenerateTerrain(TerrainData terrainData)
+        {
+            terrainData.heightmapResolution = width + 1; // Set heightmap resolution
+            terrainData.size = new Vector3(width, depth, height); // Set terrain size
+            terrainData.SetHeights(0, 0, GenerateHeights()); // Apply generated heights to the terrain
+            return terrainData;
+        }
+
+        /// <summary>
+        /// Generates the height values using Perlin noise.
+        /// </summary>
+        /// <returns>A 2D array of height values.</returns>
+        private float[,] GenerateHeights()
+        {
+            float[,] heights = new float[width, height]; // Create a 2D array for height values
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    heights[x, y] = CalculateNoise(x, y); // Calculate height using Perlin noise
+                }
+            }
+            return heights;
+        }
+
+        /// <summary>
+        /// Calculates the Perlin noise value for the given coordinates.
+        /// </summary>
+        /// <param name="x">The x coordinate.</param>
+        /// <param name="y">The y coordinate.</param>
+        /// <returns>The Perlin noise value.</returns>
+        private float CalculateNoise(int x, int y)
+        {
+            float xCoord = (float)x / width * scale; // Scale x coordinate
+            float yCoord = (float)y / height * scale; // Scale y coordinate
+            return Mathf.PerlinNoise(xCoord, yCoord); // Generate Perlin noise value
+        }
+    }
    ```
 
 2. **Applying Derivatives for Terrain Smoothing**:
    Enhance this script by incorporating noise derivatives to smooth terrain gradients and add detail, such as erosion patterns.
 
    ```csharp
-   float[] CalculateNoiseWithDerivatives(int x, int y)
-   {
-       // Convert the x and y coordinates to a range suitable for Perlin noise generation
-       float xCoord = (float)x / width * scale;
-       float yCoord = (float)y / height * scale;
+    /// <summary>
+    /// Calculates the Perlin noise value and its derivatives at the given coordinates.
+    /// </summary>
+    /// <param name="x">The x-coordinate.</param>
+    /// <param name="y">The y-coordinate.</param>
+    /// <returns>An array containing the noise value, the derivative in the x direction, and the derivative in the y direction.</returns>
+    float[] CalculateNoiseWithDerivatives(int x, int y)
+    {
+        const float derivativeStep = 0.01f;
 
-       // Generate the Perlin noise value at the given coordinates
-       float value = Mathf.PerlinNoise(xCoord, yCoord);
+        // Validate input coordinates
+        if (x < 0 || y < 0 || x >= width || y >= height)
+        {
+            throw new ArgumentOutOfRangeException("Coordinates must be within the terrain bounds.");
+        }
 
-       // Calculate the derivative in the x direction using central difference method
-       float dx = (Mathf.PerlinNoise(xCoord + 0.01f, yCoord) - Mathf.PerlinNoise(xCoord - 0.01f, yCoord)) / 0.02f;
+        // Convert the x and y coordinates to a range suitable for Perlin noise generation
+        float xCoord = (float)x / width * scale;
+        float yCoord = (float)y / height * scale;
 
-       // Calculate the derivative in the y direction using central difference method
-       float dy = (Mathf.PerlinNoise(xCoord, yCoord + 0.01f) - Mathf.PerlinNoise(xCoord, yCoord - 0.01f)) / 0.02f;
+        // Generate the Perlin noise value at the given coordinates
+        float noiseValue = Mathf.PerlinNoise(xCoord, yCoord);
 
-       // Return the noise value and its derivatives as an array
-       return new float[] { value, dx, dy };
-   }
+        // Calculate the derivative in the x direction using central difference method
+        float derivativeX = (Mathf.PerlinNoise(xCoord + derivativeStep, yCoord) - Mathf.PerlinNoise(xCoord - derivativeStep, yCoord)) / (2 * derivativeStep);
+
+        // Calculate the derivative in the y direction using central difference method
+        float derivativeY = (Mathf.PerlinNoise(xCoord, yCoord + derivativeStep) - Mathf.PerlinNoise(xCoord, yCoord - derivativeStep)) / (2 * derivativeStep);
+
+        // Return the noise value and its derivatives as an array
+        return new float[] { noiseValue, derivativeX, derivativeY };
+    }
    ```
 
    By using derivatives, you can apply various effects like shading based on slope or even dynamic weathering effects through scripts that modify terrain details over time.
