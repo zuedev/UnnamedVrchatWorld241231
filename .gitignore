@@ -74,3 +74,4 @@ crashlytics-build.properties
 
 # VRChat
 /ClientSimStorage/
+/[Aa]ssets/SerializedUdonPrograms/
