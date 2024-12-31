@@ -10,15 +10,21 @@ public class PlayerPositionSyncer : UdonSharpBehaviour
     private Vector3 _Position;
     [UdonSynced]
     private Quaternion _Rotation;
-    
+
     // The player that this script is attached to
     private VRCPlayerApi _owner;
-    
-    // if the data is restored, teleport the player to the restored position
+
+    // Delay interval for updating position
+    private const float UpdateInterval = 0.5f;
+
+    /// <summary>
+    /// If the data is restored, teleport the player to the restored position.
+    /// </summary>
+    /// <param name="player">The player whose data is restored.</param>
     public override void OnPlayerRestored(VRCPlayerApi player)
     {
-        if(!player.isLocal) return;
-        
+        if (!player.isLocal) return;
+
         player.TeleportTo(_Position, _Rotation);
     }
 
@@ -27,19 +33,21 @@ public class PlayerPositionSyncer : UdonSharpBehaviour
         if (Networking.LocalPlayer.IsOwner(gameObject))
         {
             _owner = Networking.LocalPlayer;
-            SendCustomEventDelayedSeconds(nameof(UpdatePosition), 0.5f);
+            SendCustomEventDelayedSeconds(nameof(UpdatePosition), UpdateInterval);
         }
     }
-    
-    // get the player's position and rotation every 0.5 seconds and store it in the player data
+
+    /// <summary>
+    /// Get the player's position and rotation every 0.5 seconds and store it in the player data.
+    /// </summary>
     public void UpdatePosition()
     {
-        if (_owner.IsPlayerGrounded()) // only update the position if the player is grounded
+        if (_owner != null && _owner.IsPlayerGrounded()) // Only update the position if the player is grounded
         {
             _Position = _owner.GetPosition();
             _Rotation = _owner.GetRotation();
             RequestSerialization();
         }
-        SendCustomEventDelayedSeconds(nameof(UpdatePosition), 0.5f);
+        SendCustomEventDelayedSeconds(nameof(UpdatePosition), UpdateInterval);
     }
 }
