@@ -22,3 +22,4 @@ The primary host is: https://git.zue.dev/zuedev/UnnamedVrchatWorld241231
 Official mirrors are:
 
 - [GitHub](https://github.com/zuedev/UnnamedVrchatWorld241231)
+- [GitLab](https://gitlab.com/zuedev/UnnamedVrchatWorld241231)
